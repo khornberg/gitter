@@ -19,6 +19,7 @@ class Blob extends AbstractModel
     protected $hash;
     protected $name;
     protected $size;
+    protected $writeable;
 
     public function __construct($hash, Repository $repository)
     {
@@ -77,6 +78,18 @@ class Blob extends AbstractModel
     public function setSize($size)
     {
         $this->size = $size;
+
+        return $this;
+    }
+    
+    public function getWriteable()
+    {
+        return $this->writeable;
+    }
+
+    public function setWriteable($writeable)
+    {
+        $this->writeable = $writeable;
 
         return $this;
     }
