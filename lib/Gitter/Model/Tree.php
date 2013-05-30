@@ -64,6 +64,8 @@ class Tree extends AbstractModel implements \RecursiveIterator
                 $blob->setMode($file[0]);
                 $blob->setName($file[4]);
                 $blob->setSize($file[3]);
+                $writeable = is_writeable($this->getRepository()->getPath().DIRECTORY_SEPARATOR.$file[4]);
+                $blob->setWriteable($writeable);
                 $root[] = $blob;
                 continue;
             }
@@ -88,6 +90,7 @@ class Tree extends AbstractModel implements \RecursiveIterator
                 $file['size'] = $node->getSize();
                 $file['mode'] = $node->getMode();
                 $file['hash'] = $node->getHash();
+                $file['writeable'] = $node->getWriteable();
                 $files[] = $file;
                 continue;
             }
