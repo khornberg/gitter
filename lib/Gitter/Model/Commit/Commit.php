@@ -11,12 +11,11 @@
 
 namespace Gitter\Model\Commit;
 
-use Gitter\Model\AbstractModel;
+use Gitter\Model\Object;
 use Gitter\Util\DateTime;
 
-class Commit extends AbstractModel
+class Commit extends Object
 {
-    protected $hash;
     protected $shortHash;
     protected $treeHash;
     protected $parentsHash;
@@ -25,6 +24,7 @@ class Commit extends AbstractModel
     protected $commiter;
     protected $commiterDate;
     protected $message;
+    protected $body;
     protected $diffs;
 
     public function importData(array $data)
@@ -51,16 +51,10 @@ class Commit extends AbstractModel
         );
 
         $this->setMessage($data['message']);
-    }
 
-    public function getHash()
-    {
-        return $this->hash;
-    }
-
-    public function setHash($hash)
-    {
-        $this->hash = $hash;
+        if (isset($data['body'])) {
+            $this->setBody($data['body']);
+        }
     }
 
     public function getShortHash()
@@ -71,6 +65,7 @@ class Commit extends AbstractModel
     public function setShortHash($shortHash)
     {
         $this->shortHash = $shortHash;
+        return $this;
     }
 
     public function getTreeHash()
@@ -81,6 +76,7 @@ class Commit extends AbstractModel
     public function setTreeHash($treeHash)
     {
         $this->treeHash = $treeHash;
+        return $this;
     }
 
     public function getParentsHash()
@@ -91,6 +87,7 @@ class Commit extends AbstractModel
     public function setParentsHash($parentsHash)
     {
         $this->parentsHash = $parentsHash;
+        return $this;
     }
 
     public function getAuthor()
@@ -101,6 +98,7 @@ class Commit extends AbstractModel
     public function setAuthor($author)
     {
         $this->author = $author;
+        return $this;
     }
 
     public function getDate()
@@ -111,6 +109,7 @@ class Commit extends AbstractModel
     public function setDate($date)
     {
         $this->date = $date;
+        return $this;
     }
 
     public function getCommiter()
@@ -121,6 +120,7 @@ class Commit extends AbstractModel
     public function setCommiter($commiter)
     {
         $this->commiter = $commiter;
+        return $this;
     }
 
     public function getCommiterDate()
@@ -131,6 +131,7 @@ class Commit extends AbstractModel
     public function setCommiterDate($commiterDate)
     {
         $this->commiterDate = $commiterDate;
+        return $this;
     }
 
     public function getMessage()
@@ -141,6 +142,18 @@ class Commit extends AbstractModel
     public function setMessage($message)
     {
         $this->message = $message;
+        return $this;
+    }
+
+    public function getBody()
+    {
+        return $this->body;
+    }
+    
+    public function setBody($body)
+    {
+        $this->body = $body;
+        return $this;
     }
 
     public function getDiffs()
@@ -151,10 +164,16 @@ class Commit extends AbstractModel
     public function setDiffs($diffs)
     {
         $this->diffs = $diffs;
+        return $this;
     }
 
     public function getChangedFiles()
     {
         return sizeof($this->diffs);
+    }
+
+    public function isCommit()
+    {
+        return true;
     }
 }

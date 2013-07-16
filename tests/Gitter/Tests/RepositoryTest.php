@@ -39,10 +39,8 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
             $this->markTestSkipped('There are no write permissions in order to create test repositories.');
         }
 
-        $options = array(
-            'path' => getenv('GIT_CLIENT') ?: null,
-        );
-        $this->client = new Client($options);
+        $path = getenv('GIT_CLIENT') ?: null;
+        $this->client = new Client($path);
     }
 
     public function testIsCreatingRepositoryFixtures()
@@ -133,8 +131,9 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
     public function testIsCommiting()
     {
         $repository = $this->client->getRepository(self::$tmpdir . '/testrepo');
-        $repository->commit("The truth unveiled");
+        $repository->commit("The truth unveiled\n\nThis is a proper commit body");
         $this->assertRegExp("/The truth unveiled/", $repository->getClient()->run($repository, 'log'));
+        $this->assertRegExp("/This is a proper commit body/", $repository->getClient()->run($repository, 'log'));
     }
 
     public function testIsCreatingBranches()
@@ -213,8 +212,9 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
         $commits = $repository->getCommits();
 
         foreach ($commits as $commit) {
+            $this->assertTrue($commit->isCommit());
             $this->assertInstanceOf('Gitter\Model\Commit\Commit', $commit);
-            $this->assertEquals($commit->getMessage(), "The truth unveiled");
+            $this->assertEquals($commit->getMessage(), 'The truth unveiled');
             $this->assertInstanceOf('Gitter\Model\Commit\Author', $commit->getAuthor());
             $this->assertEquals($commit->getAuthor()->getName(), 'Luke Skywalker');
             $this->assertEquals($commit->getAuthor()->getEmail(), 'luke@rebel.org');
@@ -238,6 +238,7 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
         $commits = $repository->getCommits('test_file4.txt');
 
         foreach ($commits as $commit) {
+            $this->assertTrue($commit->isCommit());
             $this->assertInstanceOf('Gitter\Model\Commit\Commit', $commit);
             $this->assertEquals($commit->getMessage(), "The truth unveiled");
             $this->assertInstanceOf('Gitter\Model\Commit\Author', $commit->getAuthor());
@@ -252,6 +253,7 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
         $files = $repository->getTree('master');
 
         foreach ($files as $file) {
+            $this->assertTrue($file->isBlob());
             $this->assertInstanceOf('Gitter\Model\Blob', $file);
             $this->assertRegExp('/test_file[0-9]*.txt/', $file->getName());
             $this->assertEquals($file->getSize(), '55');
@@ -415,6 +417,7 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
 
         foreach ($commits as $commit) {
             $singleCommit = $repository->getCommit($commit->getHash());
+            $this->assertTrue($singleCommit->isCommit());
             $this->assertInstanceOf('Gitter\Model\Commit\Commit', $singleCommit);
             $this->assertInstanceOf('Gitter\Model\Commit\Author', $singleCommit->getAuthor());
             $this->assertEquals($singleCommit->getAuthor()->getName(), 'Luke Skywalker');
@@ -426,6 +429,10 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
             $this->assertRegExp('/[a-f0-9]+/', $singleCommit->getHash());
             $this->assertRegExp('/[a-f0-9]+/', $singleCommit->getShortHash());
             $this->assertRegExp('/[a-f0-9]+/', $singleCommit->getTreeHash());
+
+            if ($singleCommit->getMessage() == 'The truth unveiled') {
+                $this->assertEquals($singleCommit->getBody(), 'This is a proper commit body');
+            }
         }
     }
 
@@ -466,17 +473,6 @@ class RepositoryTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('test file.txt', $diffs[0]->getFile(), 'New file name with a space in it');
         $this->assertEquals('testfile.txt', $diffs[1]->getFile(), 'Old file name');
 	}
-
-    public function testFindNestedRepos()
-    {
-        $nested_dir = self::$tmpdir . '/nested';
-        mkdir($nested_dir);
-        $this->client->createRepository($nested_dir . '/nestedrepo');
-        $all_repositories = $this->client->getRepositories(self::$tmpdir);
-        $nested_repositories = $this->client->getRepositories($nested_dir);
-        $this->assertCount(1, $nested_repositories, 'Only one nested repository');
-        $this->assertContains($nested_repositories[0], $all_repositories, 'Nested repository is found in all repositories');
-    }
 
     public static function tearDownAfterClass()
     {

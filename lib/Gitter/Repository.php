@@ -165,6 +165,10 @@ class Repository
         $branches = explode("\n", $branches);
         $branches = array_filter(preg_replace('/[\*\s]/', '', $branches));
 
+        if (empty($branches)) {
+            return $branches;
+        }
+
         // Since we've stripped whitespace, the result "* (no branch)"
         // that is displayed in detached HEAD state becomes "(nobranch)".
         if ($branches[0] === "(nobranch)") {
@@ -306,15 +310,18 @@ class Repository
      */
     public function getCommit($commitHash)
     {
-        $logs = $this->getClient()->run($this, "show --pretty=format:\"<item><hash>%H</hash><short_hash>%h</short_hash><tree>%T</tree><parents>%P</parents><author>%an</author><author_email>%ae</author_email><date>%at</date><commiter>%cn</commiter><commiter_email>%ce</commiter_email><commiter_date>%ct</commiter_date><message><![CDATA[%s]]></message></item>\" $commitHash");
-        $logs = explode("\n", $logs);
+        $logs = $this->getClient()->run($this, "show --pretty=format:\"<item><hash>%H</hash><short_hash>%h</short_hash><tree>%T</tree><parents>%P</parents><author>%an</author><author_email>%ae</author_email><date>%at</date><commiter>%cn</commiter><commiter_email>%ce</commiter_email><commiter_date>%ct</commiter_date><message><![CDATA[%s]]></message><body><![CDATA[%b]]></body></item>\" $commitHash");
+        $xmlEnd = strpos($logs, '</item>') + 7;
+        $commitInfo = substr($logs, 0, $xmlEnd);
+        $commitData = substr($logs, $xmlEnd);
+        $logs = explode("\n", $commitData);
+        array_shift($logs);
 
         // Read commit metadata
         $format = new PrettyFormat;
-        $data = $format->parse($logs[0]);
+        $data = $format->parse($commitInfo);
         $commit = new Commit;
         $commit->importData($data[0]);
-        unset($logs[0]);
 
         if (empty($logs[1])) {
             $logs = explode("\n", $this->getClient()->run($this, 'diff ' . $commitHash . '~1..' . $commitHash));
@@ -395,8 +402,10 @@ class Repository
                 $lineNumOld++;
                 $lineNumNew++;
             }
-
-            $diff->addLine($log, $lineNumOld, $lineNumNew);
+            
+            if ($diff) {
+                $diff->addLine($log, $lineNumOld, $lineNumNew);
+            }
         }
 
         if (isset($diff)) {
@@ -408,15 +417,13 @@ class Repository
 
     /**
      * Get the current HEAD.
-     *
+     * 
+     * @param $default Optional branch to default to if in detached HEAD state.
+     * If not passed, just grabs the first branch listed.
      * @return string the name of the HEAD branch, or a backup option if
      * in detached HEAD state.
-     *
-     * @param $default
-     * Optional branch to default to if in detached HEAD state. If not passed,
-     * just grabs the first branch listed.
      */
-    public function getHead($default=NULL)
+    public function getHead($default = null)
     {
         $file = '';
         if (file_exists($this->getPath() . '/.git/HEAD')) {
@@ -436,7 +443,7 @@ class Repository
         }
 
         // If we were given a default branch and it exists, return that.
-        if ($default !== NULL && $this->hasBranch($default)) {
+        if ($default !== null && $this->hasBranch($default)) {
             return $default;
         }
 
@@ -446,8 +453,8 @@ class Repository
             return current($branches);
         }
 
-        // No branches exist - NULL is the best we can do in this case.
-        return NULL;
+        // No branches exist - null is the best we can do in this case.
+        return null;
     }
 
     /**
