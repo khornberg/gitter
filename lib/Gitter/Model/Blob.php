@@ -79,7 +79,8 @@ class Blob extends Object
         $this->writeable = $writeable;
 
         return $this;
-
+    }
+    
     public function isBlob()
     {
         return true;
