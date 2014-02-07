@@ -169,9 +169,10 @@ class Repository
             return $branches;
         }
 
-        // Since we've stripped whitespace, the result "* (no branch)"
-        // that is displayed in detached HEAD state becomes "(nobranch)".
-        if ($branches[0] === "(nobranch)") {
+        // Since we've stripped whitespace, the result "* (detached from "
+        // and "* (no branch)" that is displayed in detached HEAD state
+        // becomes "(detachedfrom" and "(nobranch)" respectively.
+        if ((strpos($branches[0], '(detachedfrom') === 0) || ($branches[0] === '(nobranch)')) {
             $branches = array_slice($branches, 1);
         }
 
@@ -191,7 +192,7 @@ class Repository
 
         foreach ($branches as $branch) {
             if ($branch[0] === '*') {
-                if ($branch === '* (no branch)') {
+                if ((strpos($branch, '* (detached from ') === 0) || ($branch === '* (no branch)')) {
                     return NULL;
                 }
 
@@ -310,7 +311,11 @@ class Repository
      */
     public function getCommit($commitHash)
     {
-        $logs = $this->getClient()->run($this, "show --pretty=format:\"<item><hash>%H</hash><short_hash>%h</short_hash><tree>%T</tree><parents>%P</parents><author>%an</author><author_email>%ae</author_email><date>%at</date><commiter>%cn</commiter><commiter_email>%ce</commiter_email><commiter_date>%ct</commiter_date><message><![CDATA[%s]]></message><body><![CDATA[%b]]></body></item>\" $commitHash");
+        if (version_compare($this->getClient()->getVersion(), '1.8.4', '>=')) {
+            $logs = $this->getClient()->run($this, "show --ignore-blank-lines -w -b --pretty=format:\"<item><hash>%H</hash><short_hash>%h</short_hash><tree>%T</tree><parents>%P</parents><author>%an</author><author_email>%ae</author_email><date>%at</date><commiter>%cn</commiter><commiter_email>%ce</commiter_email><commiter_date>%ct</commiter_date><message><![CDATA[%s]]></message><body><![CDATA[%b]]></body></item>\" $commitHash");
+        } else {
+            $logs = $this->getClient()->run($this, "show --pretty=format:\"<item><hash>%H</hash><short_hash>%h</short_hash><tree>%T</tree><parents>%P</parents><author>%an</author><author_email>%ae</author_email><date>%at</date><commiter>%cn</commiter><commiter_email>%ce</commiter_email><commiter_date>%ct</commiter_date><message><![CDATA[%s]]></message><body><![CDATA[%b]]></body></item>\" $commitHash");
+        }
         $xmlEnd = strpos($logs, '</item>') + 7;
         $commitInfo = substr($logs, 0, $xmlEnd);
         $commitData = substr($logs, $xmlEnd);
